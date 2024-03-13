@@ -1,0 +1,113 @@
+CREATE TABLE Conferences (
+    id bigint IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    Title VARCHAR(255) NOT NULL,
+    HoldingPeriod DATE NOT NULL,
+    Building VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE Section (
+    id bigint IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    Name VARCHAR(255) NOT NULL,
+    Number INT NOT NULL,
+    Presiding VARCHAR(100) NOT NULL,
+    Room VARCHAR(50)
+);
+
+CREATE TABLE ConferencesSection (
+    ConferenceID bigint,
+    SectionID bigint,
+    PRIMARY KEY (ConferenceID, SectionID),
+    FOREIGN KEY (ConferenceID) REFERENCES Conferences(id),
+    FOREIGN KEY (SectionID) REFERENCES Section(id)
+);
+
+CREATE TABLE Presentation (
+    id bigint IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    Topic VARCHAR(255) NOT NULL,
+    DatePeriod DATETIME NOT NULL,
+    Duration INT NOT NULL,
+);
+
+CREATE TABLE SectionPresentation (
+    PresentationID bigint,
+    SectionID bigint,
+    PRIMARY KEY (PresentationID, SectionID),
+    FOREIGN KEY (PresentationID) REFERENCES Presentation(id),
+    FOREIGN KEY (SectionID) REFERENCES Section(id)
+);
+
+CREATE TABLE Speaker (
+    id bigint IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    AcademicDegree VARCHAR(50) NOT NULL,
+    Workplace VARCHAR(255) NOT NULL,
+    Position VARCHAR(100) NOT NULL,
+    Bio TEXT NOT NULL
+);
+
+CREATE TABLE PresentationSpeaker (
+    PresentationID bigint,
+    SpeakerID bigint,
+    PRIMARY KEY (PresentationID, SpeakerID),
+    FOREIGN KEY (PresentationID) REFERENCES Presentation(id),
+    FOREIGN KEY (SpeakerID) REFERENCES Speaker(id)
+);
+
+CREATE TABLE Tools (
+    id bigint IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    Info TEXT
+);
+
+CREATE TABLE PresentationTools (
+    PresentationID bigint,
+    ToolID bigint,
+    PRIMARY KEY (PresentationID, ToolID),
+    FOREIGN KEY (PresentationID) REFERENCES Presentation(id),
+    FOREIGN KEY (ToolID) REFERENCES Tools(id)
+);
+
+USE Conference
+INSERT INTO Conferences (Title, HoldingPeriod, Building)
+VALUES 
+    ('Conference1', '2024-03-10', 'Building1'),
+    ('Conference2', '2024-04-15', 'Building2'),
+    ('Conference3', '2024-05-20', 'Building3'),
+    ('Conference4', '2024-06-25', 'Building4');
+
+SELECT * FROM Conferences;
+
+INSERT INTO Section (Name, Number, Presiding, Room)
+VALUES 
+    ('Section1', 1, 'Presider1', 'Room1'),
+    ('Section2', 2, 'Presider2', 'Room2'),
+    ('Section3', 3, 'Presider3', 'Room3'),
+    ('Section4', 4, 'Presider4', 'Room4');
+
+SELECT * FROM Section;
+
+INSERT INTO Presentation(Topic, DatePeriod, Duration)
+VALUES 
+    ('Topic1', '2024-03-10 10:00', 30),
+    ('Topic2', '2024-03-11 13:30', 45),
+    ('Topic3', '2024-03-12 15:45', 60),
+    ('Topic4', '2024-03-13 09:15', 40);
+
+SELECT * FROM Presentation;
+
+INSERT INTO Speaker(AcademicDegree, Workplace, Position, Bio)
+VALUES 
+    ('PhD', 'University1', 'Professor', 'Biography1'),
+    ('Master', 'Company1', 'Engineer', 'Biography2'),
+    ('Doctorate', 'Institute1', 'Researcher', 'Biography3'),
+    ('Bachelor', 'Hospital1', 'Doctor', 'Biography4');
+
+SELECT * FROM Speaker;
+
+INSERT INTO Tools(Name, Info)
+VALUES 
+    ('Tool1', 'Information about Tool1'),
+    ('Tool2', 'Information about Tool2'),
+    ('Tool3', 'Information about Tool3'),
+    ('Tool4', 'Information about Tool4');
+
+SELECT * FROM Tools;
