@@ -1,0 +1,105 @@
+---SELECT на базі однієї таблиці з використанням сортування, накладенням умов зі зв’язками OR 
+SELECT * FROM Presentation
+WHERE Duration = 45 OR Duration = 60
+ORDER BY DatePeriod;
+
+---SELECT з виводом обчислюваних полів (виразів) в колонках результату
+SELECT Topic, Duration, CAST(Duration AS FLOAT) / 60 AS DurationInHours
+FROM Presentation;
+
+
+---UPDATE на базі однієї таблиці
+UPDATE Tools SET Info = 'Updated information about tool' WHERE Name = 'Tool1';
+SELECT * FROM Tools;
+
+
+---DELETE для видалення вибраних записів таблиці
+DELETE FROM Tools WHERE Name = 'Tool3';
+SELECT * FROM Tools;
+
+---SELECT з використанням під-запитів в частині WHERE
+SELECT *
+FROM Presentation
+WHERE Duration > (SELECT AVG(Duration) FROM Presentation);
+
+---SELECT з використанням підсумовування та групування
+SELECT s.AcademicDegree, COUNT(*) AS DegreeCount
+FROM Speaker s
+GROUP BY s.AcademicDegree;
+
+---SELECT запит типу CrossTab
+SELECT Topic,
+       MAX(CASE WHEN Duration = 30 THEN 'Short'
+                WHEN Duration IN (40, 45) THEN 'Medium'
+                WHEN Duration = 60 THEN 'Long' ELSE NULL END) AS PresentationDuration
+FROM Presentation
+GROUP BY Topic;
+
+---UPDATE на базі кількох таблиць
+UPDATE Speaker
+SET Workplace = 'University2'
+WHERE AcademicDegree = 'PhD';
+SELECT * FROM Speaker;
+
+---Append (INSERT) для додавання записів з явно вказаними значеннями
+INSERT INTO Presentation (Topic, DatePeriod, Duration)
+VALUES ('Topic5', '2024-03-14 11:00', 55);
+SELECT * FROM Presentation;
+
+---Append (INSERT) для додавання записів з інших таблиць
+INSERT INTO Presentation (Topic, DatePeriod, Duration)
+SELECT Name, '2024-03-15 09:00', 40
+FROM Section;
+SELECT * FROM Presentation;
+
+---SELECT з використанням операторів Like, Between, In, Exists, All, Any
+SELECT *
+FROM Speaker
+WHERE AcademicDegree LIKE 'Ph%'
+   OR Workplace BETWEEN 'Company1' AND 'Institute1'
+   OR Position IN ('Professor', 'Doctor')
+   OR EXISTS (SELECT * FROM Presentation WHERE Duration > 50)
+   OR Bio LIKE '%Biography%';
+
+
+--- SELECT з використанням під-запитів в частині From
+SELECT Conferences.Title, COALESCE(SUM(Presentation.Duration), 0) AS TotalDuration
+FROM Conferences
+LEFT JOIN Presentation ON Conferences.HoldingPeriod = CAST(Presentation.DatePeriod AS DATE)
+GROUP BY Conferences.Title;
+
+
+---Ієрархічний SELECT запит
+/* Цей запит використовує рекурсивний спільний запит (Common Table Expression - CTE)
+для пошуку всіх записів у таблиці Tools, які мають Name рівний 'Tool2',або 
+є пов'язаними з цими записами за допомогою колонки Info, яка є текстовим типом даних.*/
+
+WITH RecursiveCTE AS (
+  SELECT Name, Info
+  FROM Tools
+  WHERE Name = 'Tool2'
+  UNION ALL
+  SELECT t.Name, t.Info
+  FROM Tools t
+  INNER JOIN RecursiveCTE r ON r.Name = CAST(t.Info AS VARCHAR(255)) -- Використовуємо CAST для перетворення типу text на varchar
+)
+SELECT *
+FROM RecursiveCTE;
+
+--- SELECT на базі кількох таблиць з використанням сортування, накладенням умов зі зв’язками OR та AND
+SELECT 
+    Conferences.Title AS ConferenceTitle,
+    Section.Name AS SectionName,
+    Presentation.Topic AS PresentationTopic,
+    Speaker.Workplace AS SpeakerWorkplace
+FROM 
+    Conferences
+LEFT JOIN Section ON Conferences.id = Section.id
+LEFT JOIN Presentation ON Section.id = Presentation.id
+LEFT JOIN Speaker ON Presentation.id = Speaker.id
+WHERE 
+    (Conferences.HoldingPeriod >= '2024-03-10' AND Conferences.HoldingPeriod <= '2024-04-15')
+    OR (Speaker.AcademicDegree = 'PhD' OR Speaker.AcademicDegree = 'Doctorate')
+ORDER BY 
+    Conferences.HoldingPeriod ASC, 
+    Presentation.DatePeriod ASC;
