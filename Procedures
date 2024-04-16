@@ -4,15 +4,15 @@ GO
 -- Додаємо поле Rating до таблиці Conferences, якщо воно ще не існує
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Conferences' AND COLUMN_NAME = 'Rating')
 BEGIN
-ALTER TABLE Conferences
-ADD Rating DECIMAL(10, 2) NULL;
+    ALTER TABLE Conferences
+    ADD Rating DECIMAL(10, 2) NULL;
 END
 GO
 
 -- Видаляємо існуючу процедуру CalculateAllConferencesRating, якщо вона вже існує
 IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'CalculateAllConferencesRating')
 BEGIN
-DROP PROCEDURE CalculateAllConferencesRating;
+    DROP PROCEDURE CalculateAllConferencesRating;
 END
 GO
 
@@ -20,25 +20,25 @@ GO
 CREATE PROCEDURE CalculateAllConferencesRating (@StartDate DATE, @EndDate DATE)
 AS
 BEGIN
-DECLARE @ConfID bigint;
-
--- Відкриваємо курсор для вибору конференцій у вказаному періоді
-DECLARE ConferenceCursor CURSOR FOR
-SELECT id FROM Conferences WHERE HoldingPeriod BETWEEN @StartDate AND @EndDate;
-
-OPEN ConferenceCursor;
-FETCH NEXT FROM ConferenceCursor INTO @ConfID;
-
--- Ітеруємося по кожній конференції і викликаємо процедуру CalculateConferenceRating
-WHILE @@FETCH_STATUS = 0
-BEGIN
-EXEC CalculateConferenceRating @ConfID;
-FETCH NEXT FROM ConferenceCursor INTO @ConfID;
-END;
-
--- Закриваємо та звільняємо курсор
-CLOSE ConferenceCursor;
-DEALLOCATE ConferenceCursor;
+    DECLARE @ConfID bigint;
+    
+    -- Відкриваємо курсор для вибору конференцій у вказаному періоді
+    DECLARE ConferenceCursor CURSOR FOR
+    SELECT id FROM Conferences WHERE HoldingPeriod BETWEEN @StartDate AND @EndDate;
+    
+    OPEN ConferenceCursor;
+    FETCH NEXT FROM ConferenceCursor INTO @ConfID;
+    
+    -- Ітеруємося по кожній конференції і викликаємо процедуру CalculateConferenceRating
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        EXEC CalculateConferenceRating @ConfID;
+        FETCH NEXT FROM ConferenceCursor INTO @ConfID;
+    END;
+    
+    -- Закриваємо та звільняємо курсор
+    CLOSE ConferenceCursor;
+    DEALLOCATE ConferenceCursor;
 END;
 GO
 
@@ -46,96 +46,66 @@ GO
 CREATE OR ALTER PROCEDURE CalculateConferenceRating (@ConfID bigint)
 AS
 BEGIN
-DECLARE @TotalSpeakers INT;
-DECLARE @TotalDegrees DECIMAL(10, 2);
-DECLARE @TotalDuration INT;
-DECLARE @TotalEquipmentNeeded INT;
-DECLARE @Rating DECIMAL(10, 2); -- UPDATED
-DECLARE @EquipmentRating DECIMAL(10, 2);
+    DECLARE @TotalSpeakers INT;
+    DECLARE @TotalDegrees DECIMAL(10, 2);
+    DECLARE @TotalDuration INT;
+    DECLARE @TotalEquipmentNeeded INT;
+    DECLARE @Rating DECIMAL(10, 2);  -- UPDATED
+    DECLARE @EquipmentRating DECIMAL(10, 2);
+    
+    -- Кількість виступаючих
+    SELECT @TotalSpeakers = COALESCE(COUNT(ps.SpeakerID), 0)
+    FROM PresentationSpeaker ps
+    WHERE ps.PresentationID IN (SELECT sp.PresentationID FROM SectionPresentation sp INNER JOIN ConferencesSection cs ON sp.SectionID = cs.SectionID WHERE cs.ConferenceID = @ConfID);
 
--- Кількість виступаючих
-SELECT @TotalSpeakers = COALESCE(COUNT(ps.SpeakerID), 0)
-FROM PresentationSpeaker ps
-WHERE ps.PresentationID IN (SELECT sp.PresentationID FROM SectionPresentation sp INNER JOIN ConferencesSection cs ON sp.SectionID = cs.SectionID WHERE cs.ConferenceID = @ConfID);
+    -- Середнє значення ступенів виступаючих
+    SELECT @TotalDegrees = COALESCE(SUM(CASE 
+                                    WHEN s.AcademicDegree = 'PhD' THEN 5
+                                    WHEN s.AcademicDegree = 'Master' THEN 4
+                                    WHEN s.AcademicDegree = 'Doctorate' THEN 3
+                                    WHEN s.AcademicDegree = 'Bachelor' THEN 2
+                                    ELSE 1
+                                END) / NULLIF(@TotalSpeakers, 0), 0)
+    FROM Speaker s
+    WHERE s.id IN (SELECT ps.SpeakerID FROM PresentationSpeaker ps WHERE ps.PresentationID IN (SELECT sp.PresentationID FROM SectionPresentation sp INNER JOIN ConferencesSection cs ON sp.SectionID = cs.SectionID WHERE cs.ConferenceID = @ConfID));
 
--- Середнє значення ступенів виступаючих
-SELECT @TotalDegrees = COALESCE(SUM(CASE 
-WHEN s.AcademicDegree = 'PhD' THEN 5
-WHEN s.AcademicDegree = 'Master' THEN 4
-WHEN s.AcademicDegree = 'Doctorate' THEN 3
-WHEN s.AcademicDegree = 'Bachelor' THEN 2
-ELSE 1
-END) / NULLIF(@TotalSpeakers, 0), 0)
-FROM Speaker s
-WHERE s.id IN (SELECT ps.SpeakerID FROM PresentationSpeaker ps WHERE ps.PresentationID IN (SELECT sp.PresentationID FROM SectionPresentation sp INNER JOIN ConferencesSection cs ON sp.SectionID = cs.SectionID WHERE cs.ConferenceID = @ConfID));
+    -- Сума тривалості виступів
+    SELECT @TotalDuration = COALESCE(SUM(CASE 
+                                            WHEN p.Duration < 30 THEN 1
+                                            WHEN p.Duration = 30 THEN 2
+										    WHEN p.Duration < 45 THEN 3 
+											WHEN p.Duration = 45 THEN 4 
+                                            WHEN p.Duration >= 60 THEN 5
+                                            ELSE 1
+                                        END), 0)
+    FROM Presentation p
+    WHERE p.id IN (SELECT sp.PresentationID FROM SectionPresentation sp INNER JOIN ConferencesSection cs ON sp.SectionID = cs.SectionID WHERE cs.ConferenceID = @ConfID);
 
--- Сума тривалості виступів
-SELECT @TotalDuration = COALESCE(SUM(CASE 
-WHEN p.Duration < 30 THEN 1
-WHEN p.Duration = 30 THEN 2
-WHEN p.Duration < 45 THEN 3 
-WHEN p.Duration = 45 THEN 4 
-WHEN p.Duration >= 60 THEN 5
-ELSE 1
-END), 0)
-FROM Presentation p
-WHERE p.id IN (SELECT sp.PresentationID FROM SectionPresentation sp INNER JOIN ConferencesSection cs ON sp.SectionID = cs.SectionID WHERE cs.ConferenceID = @ConfID);
+    -- Сума обладнання, необхідного для виступів
+    SELECT @TotalEquipmentNeeded = COALESCE(COUNT(pt.ToolID), 0)
+    FROM PresentationTools pt
+    WHERE pt.PresentationID IN (SELECT sp.PresentationID FROM SectionPresentation sp INNER JOIN ConferencesSection cs ON sp.SectionID = cs.SectionID WHERE cs.ConferenceID = @ConfID);
 
--- Сума обладнання, необхідного для виступів
-SELECT @TotalEquipmentNeeded = COALESCE(COUNT(pt.ToolID), 0)
-FROM PresentationTools pt
-WHERE pt.PresentationID IN (SELECT sp.PresentationID FROM SectionPresentation sp INNER JOIN ConferencesSection cs ON sp.SectionID = cs.SectionID WHERE cs.ConferenceID = @ConfID);
+    -- Обчислення рейтингу обладнання
+    IF @TotalEquipmentNeeded = 0
+        SET @EquipmentRating = 1;
+    ELSE IF @TotalEquipmentNeeded <= 2
+        SET @EquipmentRating = 3;
+    ELSE
+        SET @EquipmentRating = 5;
 
--- Обчислення рейтингу обладнання
-IF @TotalEquipmentNeeded = 0
-SET @EquipmentRating = 1;
-ELSE IF @TotalEquipmentNeeded <= 2
-SET @EquipmentRating = 3;
-ELSE
-DELETE FROM ConferencesSection;
-INSERT INTO ConferencesSection (ConferenceID, SectionID)
-VALUES 
-(1, 1),
-(1, 2),
-(2, 2),
-(2, 3),
-(3, 3),
-(3, 4),
-(4, 1),
-(4, 4),
-(4, 3); 
+    -- Обчислення загального рейтингу на основі врахування усіх факторів
+    SET @Rating = ((@TotalDegrees + (@TotalDuration / NULLIF(@TotalSpeakers, 0)) + @EquipmentRating) / 3);
 
-DELETE FROM SectionPresentation;
-INSERT INTO SectionPresentation (PresentationID, SectionID)
-VALUES 
-(1, 1),
-(2, 2),
-(3, 3),
-(4, 4),
-(4, 3); 
+    -- Оновлення поля Rating у таблиці Conferences
+    UPDATE Conferences
+    SET Rating = ISNULL(@Rating, 0)
+    WHERE id = @ConfID;
+END;
+GO
 
-DELETE FROM PresentationSpeaker;
-INSERT INTO PresentationSpeaker (PresentationID, SpeakerID)
-VALUES 
-(1, 1),
-(2, 2),
-(3, 3),
-(4, 4),
-(4, 1); 
+-- Виклик процедури CalculateAllConferencesRating з відповідними параметрами
+EXEC CalculateAllConferencesRating @StartDate = '2024-03-10', @EndDate = '2024-06-25';
 
-DELETE FROM PresentationTools;
-INSERT INTO PresentationTools (PresentationID, ToolID)
-VALUES 
-(1, 1),
-(1, 2),
-(2, 3),
-(3, 4),
-(4, 1),
-(4, 2),
-(4, 3); 
-
--- Вибірка з оновленими таблицями
-SELECT * FROM ConferencesSection;
-SELECT * FROM SectionPresentation;
-SELECT * FROM PresentationSpeaker;
-SELECT * FROM PresentationTools;
+-- Перегляд результатів
+SELECT * FROM Conferences;
