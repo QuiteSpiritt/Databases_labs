@@ -1,0 +1,35 @@
+-- Видаляємо тригер, якщо він вже існує
+IF EXISTS (SELECT * FROM sys.triggers WHERE name = 'trg_Insert_Conference_Surrogate_ID')
+BEGIN
+    DROP TRIGGER trg_Insert_Conference_Surrogate_ID;
+END
+GO
+
+-- Створюємо новий тригер для заповнення додаткових полів UCR, DCR, ULC, DLC
+CREATE TRIGGER trg_Insert_Conference_Surrogate_ID
+ON Conference
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO Conference (Name, Holding_period, Building, UCR, DCR, ULC, DLC)
+    SELECT 
+        Name, 
+        Holding_period, 
+        Building, 
+        CONVERT(VARCHAR(100), GETDATE()), -- UCR
+        GETDATE(), -- DCR
+        CONVERT(VARCHAR(100), GETDATE()), -- ULC
+        GETDATE() -- DLC
+    FROM inserted;
+END
+GO
+
+-- Перевірка тригера: 
+-- Вставка даних у таблицю Conference
+INSERT INTO Conference (Name, Holding_period, Building)
+VALUES ('Conference 2025', '2025-05-10', 'Conference Center A');
+
+-- Перевірка даних у таблиці Conference
+SELECT * FROM Conference;
