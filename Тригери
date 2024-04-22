@@ -1,0 +1,106 @@
+-- Тригер для таблиці Conference
+CREATE TRIGGER trg_Conference_Audit
+ON Conference
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    DECLARE @UserName VARCHAR(100);
+    SET @UserName = SYSTEM_USER;
+    
+    UPDATE Conference
+    SET UCR = @UserName,
+        DCR = GETDATE(),
+        ULC = @UserName,
+        DLC = GETDATE()
+    FROM inserted
+    WHERE Conference.id = inserted.id;
+END;
+GO
+
+-- Тригер для таблиці Section
+CREATE TRIGGER trg_Section_Audit
+ON Section
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    DECLARE @UserName VARCHAR(100);
+    SET @UserName = SYSTEM_USER;
+    
+    UPDATE Section
+    SET UCR = @UserName,
+        DCR = GETDATE(),
+        ULC = @UserName,
+        DLC = GETDATE()
+    FROM inserted
+    WHERE Section.id = inserted.id;
+END;
+GO
+
+-- Тригер для таблиці Speaker
+CREATE TRIGGER trg_Speaker_Audit
+ON Speaker
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    DECLARE @UserName VARCHAR(100);
+    SET @UserName = SYSTEM_USER;
+    
+    UPDATE Speaker
+    SET UCR = @UserName,
+        DCR = GETDATE(),
+        ULC = @UserName,
+        DLC = GETDATE()
+    FROM inserted
+    WHERE Speaker.id = inserted.id;
+END;
+GO
+
+-- Тригер для таблиці Presentation
+CREATE TRIGGER trg_Presentation_Audit
+ON Presentation
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    DECLARE @UserName VARCHAR(100);
+    SET @UserName = SYSTEM_USER;
+    
+    UPDATE Presentation
+    SET UCR = @UserName,
+        DCR = GETDATE(),
+        ULC = @UserName,
+        DLC = GETDATE()
+    FROM inserted
+    WHERE Presentation.id = inserted.id;
+END;
+GO
+
+-- Тригер для таблиці Equipment
+CREATE TRIGGER trg_Equipment_Audit
+ON Equipment
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    DECLARE @UserName VARCHAR(100);
+    SET @UserName = SYSTEM_USER;
+    
+    UPDATE Equipment
+    SET UCR = @UserName,
+        DCR = GETDATE(),
+        ULC = @UserName,
+        DLC = GETDATE()
+    FROM inserted
+    WHERE Equipment.id = inserted.id;
+END;
+GO
+
+
+-- Вставка нового запису у таблицю Conference
+INSERT INTO Conference (Name, Holding_period, Building) VALUES ('Test Conference', '2024-05-20', 'Test Building');
+
+-- Оновлення існуючого запису у таблиці Speaker
+UPDATE Speaker SET Name = 'Updated Name' WHERE id = 1;
+
+-- Перегляд результатів, щоб перевірити, чи заповнені поля UCR, DCR, ULC, DLC коректно
+SELECT * FROM Conference;
+SELECT * FROM Speaker;
+
