@@ -1,0 +1,77 @@
+
+IF EXISTS (SELECT * FROM sys.triggers WHERE name = 'Check_Speaker_Section_Conflict')
+BEGIN
+    DROP TRIGGER Check_Speaker_Section_Conflict;
+END;
+go
+
+CREATE OR ALTER TRIGGER Check_Speaker_Section_Conflict
+ON Presentation
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    DECLARE @Speaker_Section_Count INT;
+    
+    -- Перевірка, чи виступаючий не бере участь у більш ніж одній секції в один день
+    SELECT @Speaker_Section_Count = COUNT(*)
+    FROM inserted i
+    JOIN Presentation p ON i.Speaker_ID = p.Speaker_ID
+    WHERE i.Start_Date = p.Start_Date;
+
+    IF @Speaker_Section_Count > 1
+    BEGIN
+        RAISERROR ('Speaker is already scheduled for another section on the same date.', 16, 1);
+        ROLLBACK TRANSACTION;
+        RETURN;
+    END
+END;
+
+
+
+--перевірка: 
+-- Додаємо виступаючого, який бере участь у двох секціях в один день
+INSERT INTO Presentation (Section_ID, Speaker_ID, Topic, Start_Date, Start_time, Duration) 
+VALUES
+(2, 1, 'Data Science Techniques', '2024-05-10', '11:00:00', 45); 
+SELECT * FROM Presentation;
+
+
+--В одному приміщенні не можуть проводитися одночасно засідання двох секцій.
+IF OBJECT_ID('Check_Concurrent_Presentations', 'TR') IS NOT NULL
+BEGIN
+    DROP TRIGGER Check_Concurrent_Presentations;
+END;
+GO
+
+CREATE TRIGGER Check_Concurrent_Presentations
+ON Presentation
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    DECLARE @Section_Room VARCHAR(100);
+    DECLARE @Existing_Presentation_Count INT;
+    
+    SELECT @Section_Room = Room FROM Section WHERE id = (SELECT Section_ID FROM inserted);
+    
+    SELECT @Existing_Presentation_Count = COUNT(*)
+    FROM Presentation p
+    JOIN Section s ON p.Section_ID = s.id
+    JOIN inserted i ON p.Section_ID = i.Section_ID
+    WHERE s.Room = @Section_Room
+    AND (CONVERT(DATETIME, CONVERT(VARCHAR, i.Start_Date) + ' ' + CONVERT(VARCHAR, i.Start_time)) BETWEEN (CONVERT(DATETIME, CONVERT(VARCHAR, p.Start_Date) + ' ' + CONVERT(VARCHAR, p.Start_time))) AND (DATEADD(MINUTE, p.Duration, CONVERT(DATETIME, CONVERT(VARCHAR, p.Start_Date) + ' ' + CONVERT(VARCHAR, p.Start_time)))));
+    
+    IF @Existing_Presentation_Count > 0
+    BEGIN
+        RAISERROR('Cannot schedule presentation. Another presentation is already scheduled in the same room at the same time.', 16, 1);
+        ROLLBACK TRANSACTION;
+        RETURN;
+    END
+END;
+
+
+--перевірка :
+INSERT INTO Presentation (Section_ID, Speaker_ID, Topic, Start_Date, Start_time, Duration) 
+VALUES (1, 2, 'Data Mining Techniques', '2024-05-10', '09:00:00', 60);
+SELECT * FROM Presentation;
+
+
