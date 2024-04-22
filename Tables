@@ -1,0 +1,46 @@
+
+USE Conferences;
+
+CREATE TABLE Conference (
+    id INT IDENTITY PRIMARY KEY,
+    Name VARCHAR(100),
+    Holding_period DATE,
+    Building VARCHAR(100)
+);
+
+CREATE TABLE Section (
+    id INT IDENTITY PRIMARY KEY,
+    Conference_ID INT,
+    Name VARCHAR(100),
+    Number INT,
+    Head VARCHAR(100),
+    Room VARCHAR(100),
+    FOREIGN KEY (Conference_ID) REFERENCES Conference(id)
+);
+CREATE TABLE Speaker (
+    id INT IDENTITY PRIMARY KEY,
+    Name VARCHAR(100),
+    Academic_Degree VARCHAR(50),
+    Workplace VARCHAR(100),
+    Position VARCHAR(100),
+    Bio TEXT
+);
+CREATE TABLE Presentation (
+    id INT IDENTITY PRIMARY KEY,
+    Section_ID INT,
+	Speaker_ID INT,
+    Topic VARCHAR(100),
+    Start_Date DATE,
+	Start_time TIME(0), 
+    Duration INT,
+    FOREIGN KEY (Section_ID) REFERENCES Section(id),
+	FOREIGN KEY (Speaker_ID) REFERENCES Speaker(id) 
+);
+
+
+CREATE TABLE Equipment (
+    id INT IDENTITY PRIMARY KEY,
+    Name VARCHAR(100),
+    Presentation_ID INT,
+	FOREIGN KEY (Presentation_ID) REFERENCES Presentation(id)
+);
