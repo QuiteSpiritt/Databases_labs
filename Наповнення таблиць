@@ -1,0 +1,41 @@
+Use Conferences
+
+INSERT INTO Conference (Name, Holding_period, Building) VALUES
+('Conference 2024', '2024-05-10', 'Conference Center A'),
+('Annual Symposium', '2024-08-20', 'Convention Hall B'),
+('Tech Expo', '2024-10-15', 'Exhibition Center C');
+
+
+INSERT INTO Section (Conference_ID, Name, Number, Head, Room) VALUES
+(1, 'Machine Learning', 1, 'Dr. Smith', 'Room 101'),
+(1, 'Data Science', 2, 'Prof. Johnson', 'Room 102'),
+(2, 'Biotechnology', 1, 'Dr. Lee', 'Room A'),
+(3, 'Artificial Intelligence', 1, 'Prof. Williams', 'Room X');
+
+
+INSERT INTO Speaker (Name, Academic_Degree, Workplace, Position, Bio) VALUES
+('John Doe', 'Professor', 'University of Science', 'Professor', 'Expert in machine learning.'),
+('Jane Smith', 'Master', 'Tech Corp', 'Data Scientist', 'Specializes in predictive analytics.'),
+('David Lee', 'Doctor', 'BioTech Labs', 'Research Scientist', 'Biotechnology innovator.'),
+('Emily Williams', 'None', 'AI Institute', 'Lead Researcher', 'Pioneering AI researcher.'),
+('Mary Johnson', 'Bachelor', 'Acme Corporation', 'Software Engineer', 'Experienced software developer.');
+
+INSERT INTO Presentation (Section_ID,Speaker_ID, Topic, Start_Date, Start_time, Duration) VALUES
+(1,1,  'Introduction to ML',  '2024-05-10', '09:00:00', 60),
+(1, 2, 'Data Mining Techniques',  '2024-07-10', '10:30:00', 30),
+(2,3, 'Latest Advances in Biotech',  '2024-05-12', '09:30:00', 60),
+(3,4, 'Ethical AI Development',  '2024-04-14', '11:00:00', 80);
+
+INSERT INTO Equipment (Name, Presentation_ID) VALUES
+('Projector', 1),
+('Laptop', 2),
+('Microscope', 3),
+('Whiteboard', 4);
+
+
+	   
+SELECT * FROM Conference;
+SELECT * FROM Section;
+SELECT * FROM Speaker;
+SELECT * FROM Presentation;
+SELECT * FROM Equipment;
