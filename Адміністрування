@@ -1,0 +1,119 @@
+Use Conferences
+
+-- 1) Створення 3-4 різнотипних користувачів БД та створити текстовий опис типових задач, що виникають перед користувачами
+-- Користувач 1: Адміністратор конференції
+CREATE LOGIN ConferenceAdmin WITH PASSWORD = 'StrongPassword1';
+CREATE USER ConferenceAdmin FOR LOGIN ConferenceAdmin;
+-- Задачі: Управління конференціями, секціями, спікерами, презентаціями та обладнанням для презентацій.
+
+-- Користувач 2: Модератор секцій
+CREATE LOGIN SectionModerator WITH PASSWORD = 'StrongPassword2';
+CREATE USER SectionModerator FOR LOGIN SectionModerator;
+-- Задачі: Додавання/редагування/видалення секцій, призначення голови секції, надання привілеїв спікерам.
+
+-- Користувач 3: Організатор презентацій
+CREATE LOGIN PresentationOrganizer WITH PASSWORD = 'StrongPassword3';
+CREATE USER PresentationOrganizer FOR LOGIN PresentationOrganizer;
+-- Задачі: Додавання/редагування/видалення презентацій, призначення спікерів, вказання обладнання для презентацій.
+
+-- Користувач 4: Глядач конференції
+CREATE LOGIN ConferenceViewer WITH PASSWORD = 'StrongPassword4';
+CREATE USER ConferenceViewer FOR LOGIN ConferenceViewer;
+-- Задачі: Перегляд інформації про конференції, секції, спікерів та презентацій.
+
+
+-- 2) Надати створеним користувачам привілеї відповідно до їх типових задач.
+-- Привілеї для користувача ConferenceAdmin
+GRANT ALTER, DELETE, INSERT, SELECT, UPDATE ON Conference TO ConferenceAdmin;
+GRANT ALTER, DELETE, INSERT, SELECT, UPDATE ON Section TO ConferenceAdmin;
+GRANT ALTER, DELETE, INSERT, SELECT, UPDATE ON Speaker TO ConferenceAdmin;
+GRANT ALTER, DELETE, INSERT, SELECT, UPDATE ON Presentation TO ConferenceAdmin;
+GRANT ALTER, DELETE, INSERT, SELECT, UPDATE ON Equipment TO ConferenceAdmin;
+
+-- Привілеї для користувача SectionModerator
+GRANT ALTER, DELETE, INSERT, SELECT, UPDATE ON Section TO SectionModerator;
+
+-- Привілеї для користувача PresentationOrganizer
+GRANT ALTER, DELETE, INSERT, SELECT, UPDATE ON Presentation TO PresentationOrganizer;
+
+-- Привілеї для користувача ConferenceViewer
+GRANT SELECT ON Conference TO ConferenceViewer;
+GRANT SELECT ON Section TO ConferenceViewer;
+GRANT SELECT ON Speaker TO ConferenceViewer;
+GRANT SELECT ON Presentation TO ConferenceViewer;
+GRANT SELECT ON Equipment TO ConferenceViewer;
+
+
+-- 3) Створити 2-3 типові ролі для користувачів БД та створити текстовий опис типових задач, що асоціюються з цими ролями.
+-- Роль 1: Адміністратор конференції
+CREATE ROLE ConferenceAdminRole;
+
+-- Роль 2: Модератор секцій
+CREATE ROLE SectionModeratorRole;
+
+-- Роль 3: Організатор презентацій
+CREATE ROLE PresentationOrganizerRole;
+
+
+-- 4) Надати необхідні привілеї створеним ролям.
+-- Привілеї для ролі ConferenceAdminRole
+GRANT ALTER, DELETE, INSERT, SELECT, UPDATE ON Conference TO ConferenceAdminRole;
+GRANT ALTER, DELETE, INSERT, SELECT, UPDATE ON Section TO ConferenceAdminRole;
+GRANT ALTER, DELETE, INSERT, SELECT, UPDATE ON Speaker TO ConferenceAdminRole;
+GRANT ALTER, DELETE, INSERT, SELECT, UPDATE ON Presentation TO ConferenceAdminRole;
+GRANT ALTER, DELETE, INSERT, SELECT, UPDATE ON Equipment TO ConferenceAdminRole;
+
+-- Привілеї для ролі SectionModeratorRole
+GRANT ALTER, DELETE, INSERT, SELECT, UPDATE ON Section TO SectionModeratorRole;
+
+-- Привілеї для ролі PresentationOrganizerRole
+GRANT ALTER, DELETE, INSERT, SELECT, UPDATE ON Presentation TO PresentationOrganizerRole;
+
+
+-- 5) Призначити користувачам ролі.
+-- Призначення ролі ConferenceAdminRole користувачу ConferenceAdmin
+ALTER ROLE ConferenceAdminRole ADD MEMBER ConferenceAdmin;
+
+-- Призначення ролі SectionModeratorRole користувачу SectionModerator
+ALTER ROLE SectionModeratorRole ADD MEMBER SectionModerator;
+
+-- Призначення ролі PresentationOrganizerRole користувачу PresentationOrganizer
+ALTER ROLE PresentationOrganizerRole ADD MEMBER PresentationOrganizer;
+
+
+-- 6) Відкликати у користувача привілей, що також призначений через роль. Переконатися у збереженні здатності користувача користуватися привілеєм через роль.
+-- Відкликання привілеїв для користувача SectionModerator
+REVOKE ALTER, DELETE, INSERT, SELECT, UPDATE ON Section FROM SectionModerator;
+
+
+-- 7) Відкликати роль у користувача. Переконатися у збереженні у користувача привілей, що були призначені йому персонально (не через роль), та відсутності у нього привілей, що були йому надані лише через роль.
+-- Відкликання ролі ConferenceAdminRole у користувача ConferenceAdmin
+ALTER ROLE ConferenceAdminRole DROP MEMBER ConferenceAdmin;
+
+
+-- 8) Видалити роль. Видалити користувача.
+-- Видалення ролі ConferenceAdminRole
+DROP ROLE ConferenceAdminRole;
+
+-- Видалення користувача ConferenceAdmin
+DROP USER ConferenceAdmin;
+
+
+--перевірки : 
+-- Перевірка створених користувачів у базі даних
+SELECT name FROM sys.database_principals WHERE type IN ('S', 'U');
+
+-- Для перевірки наданих привілеїв користувачу ConferenceAdmin
+SELECT * FROM sys.database_permissions WHERE grantee_principal_id = USER_ID('ConferenceAdmin');
+
+--Перевірка наявності користувачів:
+SELECT * 
+FROM sys.database_principals 
+WHERE type_desc IN ('SQL_USER', 'WINDOWS_USER', 'APPLICATION_ROLE', 'DATABASE_ROLE');
+
+--Перевірка приналежності ролей користувачеві:
+SELECT dp.name AS UserName, dp.type_desc AS UserType, dr.name AS RoleName
+FROM sys.database_principals dp
+INNER JOIN sys.database_role_members drm ON dp.principal_id = drm.member_principal_id
+INNER JOIN sys.database_principals dr ON drm.role_principal_id = dr.principal_id
+WHERE dp.type_desc IN ('SQL_USER', 'WINDOWS_USER') AND dr.type_desc = 'DATABASE_ROLE';
